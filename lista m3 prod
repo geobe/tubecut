@@ -1,0 +1,15 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="" tvg-name="MZ SPORTS" tvg-logo="" group-title="PREMIUM COSTA RICA",MZ SPORTS
+http://svtv.xyz:8080/DFXXK/WVYEX/274055
+#EXTINF:-1 tvg-id="" tvg-name="CR | FUTV *" tvg-logo="https://cloudfront-us-east-1.images.arcpublishing.com/gruponacion/BZAFW4DBWRBGJPAYNKXOVSSDHM.png" group-title="PREMIUM COSTA RICA",CR | FUTV *
+http://svtv.xyz:8080/DFXXK/WVYEX/264848
+#EXTINF:-1 tvg-id="" tvg-name="CR | FUTV **" tvg-logo="https://cloudfront-us-east-1.images.arcpublishing.com/gruponacion/BZAFW4DBWRBGJPAYNKXOVSSDHM.png" group-title="PREMIUM COSTA RICA",CR | FUTV **
+http://svtv.xyz:8080/DFXXK/WVYEX/264849
+#EXTINF:-1 tvg-id="" tvg-name="CR | FUTV" tvg-logo="https://cloudfront-us-east-1.images.arcpublishing.com/gruponacion/BZAFW4DBWRBGJPAYNKXOVSSDHM.png" group-title="PREMIUM COSTA RICA",CR | FUTV
+http://svtv.xyz:8080/DFXXK/WVYEX/274056
+#EXTINF:-1 tvg-id="" tvg-name="CR: FUTV SD" tvg-logo="https://cloudfront-us-east-1.images.arcpublishing.com/gruponacion/BZAFW4DBWRBGJPAYNKXOVSSDHM.png" group-title="PREMIUM COSTA RICA",CR: FUTV SD
+http://svtv.xyz:8080/DFXXK/WVYEX/109050
+#EXTINF:-1 tvg-id="" tvg-name="CR:  +TELEVISION" tvg-logo="https://i.imgur.com/aUKg8oO.png" group-title="PREMIUM COSTA RICA",CR:  +TELEVISION
+http://svtv.xyz:8080/DFXXK/WVYEX/109002
+#EXTINF:-1 tvg-id="" tvg-name="CR: ANEXION TV" tvg-logo="https://www.kolbi.cr/wps/wcm/connect/www.kolbi.cr/228191bc-1283-434e-93a5-ef90c46c46c2/kolbi-hogar-tv-anexiontv.png?MOD=AJPERES&CACHEID=ROOTWORKSPACE.Z18_GG1AHCC0P8VB70QI79ARQL0000-228191bc-1283-434e-93a5-ef90c46c46c2-mKKclW7" group-title="PREMIUM COSTA RICA",CR: ANEXION TV
+http://svtv.xyz:8080/DFXXK/WVYEX/108982
