@@ -1,1 +1,1 @@
-# tubecut: Calculate and draw outline of cutting surface of intersecting tubes
+# TubeCut: Calculate and draw outline of cutting surface of intersecting tubes
