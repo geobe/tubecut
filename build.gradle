@@ -1,0 +1,32 @@
+plugins {
+    id 'groovy'
+    id 'java'
+    id 'application'
+}
+
+group 'de.geobe'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.apache.groovy:groovy-all:4.0.3'
+    testImplementation 'org.spockframework:spock-core:2.2-M1-groovy-4.0'
+}
+
+application {
+    // Define the main class for the application.
+    mainClassName = 'de.geobe.tubecut.calc.SvgGenerator'
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': application.mainClassName
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
