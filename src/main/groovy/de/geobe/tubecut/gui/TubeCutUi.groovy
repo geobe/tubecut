@@ -1,5 +1,6 @@
 package de.geobe.tubecut.gui
 
+import de.geobe.tubecut.calc.SvgGenerator
 import groovy.swing.SwingBuilder
 
 import javax.swing.*
@@ -18,6 +19,11 @@ class TubeCutUi {
     JPanel values, defaults, drawing
     JTabbedPane inputTabs
     SpinnerNumberModel dlarge, dsmall, angle, excentricity, pagew, pageh
+    JTextField filenamePattern, plotDir
+    JTextArea svgText
+    Action calcAction, saveAction
+    String svg
+    def i18n = new TCi18n()
     def x = new JTextField(5);
 
     {
@@ -42,10 +48,48 @@ class TubeCutUi {
         [gridx: 1, gridy: y, ipadx: 5, ipady: 1, fill: HORIZONTAL, weightx: 0.3]
     }
 
+    def calculateSvg(event) {
+        svg = SvgGenerator.calculateTubecutPlot(
+                dlarge.value / 2.0,
+                dsmall.value / 2.0,
+                angle.value,
+                excentricity.value,
+                0.1,
+                pagew.value,
+                pageh.value
+        )
+        if (svg?.length() > 0) {
+            saveAction.enabled = true
+             svgText.setText(svg)
+        } else {
+            saveAction.enabled = false
+            svgText.setText(i18n.v('nosvg'))
+        }
+    }
+
+    def saveSvg(event){
+        def filename = plotDir.text + '/' + String.format(filenamePattern.text, dlarge.value, dsmall.value, excentricity.value, angle.value)
+        new File(filename).withWriter('utf-8') { writer ->
+            writer.write(svg)
+        }
+    }
+
     def buildUi() {
         def font = new Font('Dialog', Font.BOLD, 15.0)
-        def i18n = new TCi18n()
         i18n.setLoc('de')
+        calcAction = swing.action(
+                name: i18n.v('calc_bt'),
+                closure: this.&calculateSvg,
+                mnemonic: 'C',
+                accelerator: 'alt C'
+        )
+        saveAction = swing.action(
+                name: i18n.v('save_bt'),
+                closure: this.&saveSvg,
+                mnemonic: 'S',
+                accelerator: 'ctrl s',
+                enabled: false
+        )
         swing.edt {
             frame = swing.frame(title: 'TubeCut', pack: true, show: true, font: font,
                     preferredSize: [1200, 800], location: [500, 500],
@@ -76,9 +120,9 @@ class TubeCutUi {
                             spinner(font: font, model: excentricity,
                                     constraints: gbc(gbcText1(3)))
                             glue(constraints: gbc(gridx: 0, gridy: 4, weightx: 0.0, weighty: 1.0))
-                            button(text: i18n.v('calc_bt'), toolTipText: i18n.v('calc_bt_tt'), font: font,
+                            button(action: calcAction, toolTipText: i18n.v('calc_bt_tt'), font: font,
                                     constraints: gbc(gridx: 0, gridy: 5, ipadx: 2, ipady: 1, weightx: 0.0, weighty: 0.1))
-                            button(text: i18n.v('save_bt'), toolTipText: i18n.v('save_bt_tt'), font: font,
+                            button(action: saveAction, toolTipText: i18n.v('save_bt_tt'), font: font,
                                     constraints: gbc(gridx: 1, gridy: 5, ipadx: 2, ipady: 1, weightx: 0.0, weighty: 0.1))
                         }
                         defaults = panel(name: i18n.v('defaults'), toolTipText: i18n.v('defaults_tt')) {
@@ -95,16 +139,20 @@ class TubeCutUi {
                                     constraints: gbc(gridx: 0, gridy: 2, gridwidth: 2, ipady: 10, anchor: CENTER))
                             label(text: i18n.v('svgdir'), toolTipText: i18n.v('svgdir_tt'), font: font,
                                     constraints: gbc(gbcLabel(0, 3)))
-                            textField(text: "${System.getProperty('user.home')}/tmp/tmp", font: font,
+                            plotDir = textField(text: "${System.getProperty('user.home')}/tmp/tmp", font: font,
                                     constraints: gbc(gbcText1(3)))
                             label(text: i18n.v('svgfile'), toolTipText: i18n.v('svgfile_tt'), font: font,
                                     constraints: gbc(gbcLabel(0, 4)))
-                            textField(text: 'ltubecut_%.0f_%.0f_%.0f_%.0f.svg', font: font,
+                            filenamePattern = textField(text: 'tubecut_%d_%d_%d_%d.svg', font: font,
                                     constraints: gbc(gbcText1(4)))
                             glue(constraints: gbc(gridx: 0, gridy: 5, weightx: 0.0, weighty: 1.0))
                         }
                     }
-                    drawing = panel(name: 'drawing', preferredSize: [400, 300], background: Color.LIGHT_GRAY)
+                    drawing = panel(name: 'drawing', preferredSize: [400, 300], background: Color.LIGHT_GRAY) {
+                        borderLayout()
+                        svgText = textArea(name: svg, text: i18n.v('nosvg'), font: font,
+                                constraints: BorderLayout.CENTER)
+                    }
                 }
             }
         }
@@ -160,7 +208,9 @@ class TCi18n {
             svgfile_tt : ['''Dateiname enthält Rohrradius groß, klein, Winkel und Exzentrizität.
 Für die Platzhalter %.0f wird der jeweilige Wert eingesetzt''',
                           '''file name contains tube radius large, small, angle and excentricity.
-The patterns %.0f are replaced by the current values''']
+The patterns %.0f are replaced by the current values'''],
+            nosvg      : ['noch keine SVG Grafik berechnet oder Berechnung fehlgeschlagen',
+                          'no SVG graphic is calculated yet or calculation failed']
     ]
 
     def v(def key) {

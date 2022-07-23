@@ -132,7 +132,7 @@ $groups
         builder.toString()
     }
 
-    static void calculateTubecutPlot(
+    static calculateTubecutPlot(
             double rLarge = 78.0,
             double rSmall = 20.0,
             double angle = 45.0,
@@ -167,9 +167,10 @@ $groups
         def group2 = gen.groupFrame([p0, length, tg0r, tg1r], pageWidth - xOffset  , pageHeight - 50, -1)
         def textgroup = gen.groupFrame([legend], xOffset, 0, 1, 1)
         def svg = gen.svgFrame([group, group2, textgroup])
-        def dir = System.getProperty('user.home') + plotDir
-        def filename = dir + '/' + String.format(filenamePattern, rLarge, rSmall, exc, angle)
-        gen.writeFile(svg, filename)
+//        def dir = System.getProperty('user.home') + plotDir
+//        def filename = dir + '/' + String.format(filenamePattern, rLarge, rSmall, exc, angle)
+//        gen.writeFile(svg, filename)
+        svg
     }
 
     static void main(String[] args) {
