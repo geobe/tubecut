@@ -22,7 +22,7 @@ class TubeCutUi {
 //    JSplitPane splitPane
     JPanel values, defaults, drawing, splitPane
     JTabbedPane inputTabs
-    SpinnerNumberModel dlarge, dsmall, angle, excentricity, stepwidth, pagew, pageh
+    SpinnerNumberModel dlarge, thlarge, dsmall, angle, offset, stepwidth, pagew, pageh
     JTextField filenamePattern, plotDir
     JTextArea svgText //= new JTextArea()
     Action calcAction, saveAction
@@ -33,11 +33,12 @@ class TubeCutUi {
     def i18n = new TCi18n();
 
     {
-        dlarge = new SpinnerNumberModel(value: 156, minimum: 1, maximum: 250)
+        dlarge = new SpinnerNumberModel(value: 150, minimum: 1, maximum: 250)
+        thlarge = new SpinnerNumberModel(value: 5.0f, minimum: 0.0f, maximum: 20.0f, stepSize: 0.5f)
         dsmall = new SpinnerNumberModel(value: 40, minimum: 1, maximum: 100)
         angle = new SpinnerNumberModel(value: 40, minimum: 15, maximum: 90)
-        excentricity = new SpinnerNumberModel(value: 55, minimum: 0, maximum: 120)
-        stepwidth = new SpinnerNumberModel(value: 0.1f, minimum: 0.01f, maximum: 1.0f, stepSize: 0.02f)
+        offset = new SpinnerNumberModel(value: 40, minimum: 0, maximum: 120)
+        stepwidth = new SpinnerNumberModel(value: 0.25f, minimum: 0.01f, maximum: 1.0f, stepSize: 0.02f)
         pagew = new SpinnerNumberModel(value: 291, minimum: 105, maximum: 420)
         pageh = new SpinnerNumberModel(value: 210, minimum: 105, maximum: 420)
     }
@@ -60,9 +61,10 @@ class TubeCutUi {
         frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR))
         svg = SvgGenerator.calculateTubecutPlot(
                 dlarge.value / 2.0,
+                (double) thlarge.value,
                 dsmall.value / 2.0,
                 (double) angle.value,
-                (double) excentricity.value,
+                (double) offset.value,
                 (double) stepwidth.value,
                 (int) pagew.value,
                 (int) pageh.value
@@ -86,7 +88,7 @@ class TubeCutUi {
     }
 
     def saveSvg(event) {
-        def filename = plotDir.text + '/' + String.format(filenamePattern.text, dlarge.value, dsmall.value, excentricity.value, angle.value)
+        def filename = plotDir.text + '/' + String.format(filenamePattern.text, dlarge.value, dsmall.value, offset.value, angle.value)
         new File(filename).withWriter('utf-8') { writer ->
             writer.write(svg)
         }
@@ -116,41 +118,46 @@ class TubeCutUi {
                     defaultCloseOperation: EXIT_ON_CLOSE) {
                 menuBar() {
                     glue()
-                    menu( 'Hilfe') {
+                    menu('Hilfe') {
                         menu 'see Github'
                     }
                 }
-                splitPane = panel( ) {
+                int row = 0
+                splitPane = panel() {
                     borderLayout()
                     inputTabs = tabbedPane(selectedIndex: 0, font: font, constraints: BorderLayout.WEST) {
                         values = panel(name: i18n.v('values'), toolTipText: i18n.v('values_tt'),
-                                preferredSize: [360,800], maximumSize: [360, 1800]) {
+                                preferredSize: [360, 800], maximumSize: [360, 1800]) {
                             gridBagLayout()
                             label(text: i18n.v('ltube'), toolTipText: i18n.v('ltube_tt'), font: font,
-                                    constraints: gbc(gbcLabel(0, 0)))
+                                    constraints: gbc(gbcLabel(0, row)))
                             spinner(font: font, model: dlarge,
-                                    constraints: gbc(gbcText1(0)))
+                                    constraints: gbc(gbcText1(row++)))
+                            label(text: i18n.v('thltube'), toolTipText: i18n.v('thltube_tt'), font: font,
+                                    constraints: gbc(gbcLabel(0, row)))
+                            spinner(font: font, model: thlarge,
+                                    constraints: gbc(gbcText1(row++)))
                             label(text: i18n.v('stube'), toolTipText: i18n.v('stube_tt'), font: font,
-                                    constraints: gbc(gbcLabel(0, 1)))
+                                    constraints: gbc(gbcLabel(0, row )))
                             spinner(font: font, model: dsmall,
-                                    constraints: gbc(gbcText1(1)))
+                                    constraints: gbc(gbcText1(row++)))
                             label(text: i18n.v('angle'), toolTipText: i18n.v('angle_tt'), font: font,
-                                    constraints: gbc(gbcLabel(0, 2)))
+                                    constraints: gbc(gbcLabel(0, row)))
                             spinner(font: font, model: angle,
-                                    constraints: gbc(gbcText1(2)))
+                                    constraints: gbc(gbcText1(row++)))
                             label(text: i18n.v('exc'), toolTipText: i18n.v('exc_tt'), font: font,
-                                    constraints: gbc(gbcLabel(0, 3)))
-                            spinner(font: font, model: excentricity,
-                                    constraints: gbc(gbcText1(3)))
-                            glue(constraints: gbc(gridx: 0, gridy: 4, weightx: 0.0, weighty: 0.1))
+                                    constraints: gbc(gbcLabel(0, row)))
+                            spinner(font: font, model: offset,
+                                    constraints: gbc(gbcText1(row++)))
+                            glue(constraints: gbc(gridx: 0, gridy: row++, weightx: 0.0, weighty: 0.1))
                             svgText = textArea(name: svg, text: i18n.v('nosvg'), font: font,
                                     lineWrap: true, rows: 3, columns: 30, editable: false,
-                                    constraints: gbc(gridx: 0, gridy: 5, gridwidth: 2, ipadx: 10.0,))
-                            glue(constraints: gbc(gridx: 0, gridy: 6, weightx: 0.0, weighty: 1.0))
+                                    constraints: gbc(gridx: 0, gridy: row++, gridwidth: 2, ipadx: 10.0,))
+                            glue(constraints: gbc(gridx: 0, gridy: row++, weightx: 0.0, weighty: 1.0))
                             button(action: calcAction, toolTipText: i18n.v('calc_bt_tt'), font: font,
-                                    constraints: gbc(gridx: 0, gridy: 7, ipadx: 2, ipady: 1, weightx: 0.0, weighty: 0.1))
+                                    constraints: gbc(gridx: 0, gridy: row, ipadx: 2, ipady: 1, weightx: 0.0, weighty: 0.1))
                             button(action: saveAction, toolTipText: i18n.v('save_bt_tt'), font: font,
-                                    constraints: gbc(gridx: 1, gridy: 7, ipadx: 2, ipady: 1, weightx: 0.0, weighty: 0.1))
+                                    constraints: gbc(gridx: 1, gridy: row, ipadx: 2, ipady: 1, weightx: 0.0, weighty: 0.1))
                         }
                         defaults = panel(name: i18n.v('defaults'), toolTipText: i18n.v('defaults_tt')) {
                             gridBagLayout()
@@ -182,7 +189,7 @@ class TubeCutUi {
                     drawing = panel(name: 'drawing', minimumSize: [400, 300], constraints: BorderLayout.CENTER) {
                         gridBagLayout()
                         widget(svgCanvas, constraints: gbc(gridx: 0, gridy: 0, weightx: 1.0, weighty: 1.0, fill: BOTH,
-                        minHeight: 500, minWidth: 500))
+                                minHeight: 500, minWidth: 500))
                     }
                 }
             }
@@ -217,6 +224,8 @@ class TCi18n {
                           'defaults for paper size, file name patterns etc'],
             ltube      : ['Innen-Ø großes Rohr [mm]', 'inner Ø large tube [mm]'],
             ltube_tt   : ['Innendurchmesser des großen Rohres in mm', 'inner diameter of large tube in mm'],
+            thltube    : ['Wandstärke großes Rohr [mm]', 'Wall Thickness of large tube [mm]]'],
+            thltube_tt : ['Wandstärke großes Rohr in mm', 'Wall Thickness of large tube in mm'],
             stube      : ['Außen-Ø kleines Rohr [mm]', 'outer Ø small tube [mm]'],
             stube_tt   : ['Außendurchmesser des kleinen Rohres in mm', 'outer diameter of small tube in mm'],
             angle      : ['Winkel [°]', 'Angle [°]'],

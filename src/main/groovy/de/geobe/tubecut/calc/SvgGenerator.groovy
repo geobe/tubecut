@@ -2,6 +2,7 @@ package de.geobe.tubecut.calc
 
 import de.geobe.tubecut.gui.TCi18n
 
+import static java.lang.Math.PI
 import static java.lang.Math.asin
 
 class SvgGenerator {
@@ -10,6 +11,8 @@ class SvgGenerator {
     int translateX = 10
     int translateY = height / 2
     def startPathAt = "M 0,0"
+    static final rad2deg = 180.0 / PI
+    static final deg2rad = PI / 180
 
     static trans = [
             fOut   : ["von außen", "from outside"],
@@ -21,15 +24,23 @@ class SvgGenerator {
             off    : ['Versatz', 'offset'],
             measure: ['Länge auf Ausdruck nachmessen!', 'Verify length on printout!'],
             base   : ['Seitenlinie (90°)', 'side line (90°)'],
-            top    : ['Scheitellinie (180°)', 'top line (180°)']
+            top    : ['Scheitellinie (180°)', 'top line (180°)'],
+            solid  : ['Durchgezogene Linie ist ideale Schnittkurve auf der inneren Rohroberfläche',
+                      'solid line is ideal cutting shape on inner tube surface'],
+            dashed : ['Gestrichelte Linie ist ideale Schnittkurve auf der äußeren Rohroberfläche',
+                      'dashed line is ideal cutting shape on outer tube surface'],
     ]
     static i18n = new TCi18n(trans: trans)
 
 
-    String pathFrame(String pathContent) {
+    String pathFrame(String pathContent, boolean dash = false, ArrayList transform = [0, 0]) {
+        def dashline = ''
+        if (dash) {
+            dashline = ';stroke-dasharray:1%,1%'
+        }
         def path = """\
-    <path
-       style="fill:none;stroke:#000000;stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+    <path transform="translate(${transform[0]},${transform[1]})"
+       style="fill:none;stroke:#000000;stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1$dashline"
        d="$pathContent"
     />
 """
@@ -98,17 +109,21 @@ $groups
         path.toString()
     }
 
-    def generateLegend(dlarge, dsmall, angle, offset, length) {
+    def generateLegend(dlarge, dsmall, angle, offset, length, pageheight) {
         int xText = length / 3
+        int texttop = pageheight - 40
+        int ty = texttop
         i18n.with {
             """\
-    <text x="$xText" y="10" style="font-family:sans-serif;font-size:1mm">
+    <text x="$xText" y="${ty}" style="font-family:sans-serif;font-size:1mm">
         <tspan>D<tspan style="baseline-shift:sub;font-size:0.8mm">${v('large')}</tspan> = $dlarge mm,</tspan>
         <tspan>  D<tspan style="baseline-shift:sub;font-size:0.8mm">${v('small')}</tspan> = $dsmall mm,</tspan>
         <tspan>  ${v('ang')} = $angle°,</tspan>
         <tspan>  ${v('off')} = $offset mm,</tspan>
         <tspan>  ${v('len')} = ${length.round(2)} mm</tspan>
-        <tspan x="${xText}" y="18" style="font-weight:bold">${v('measure')}</tspan>
+        <tspan x="${xText}" y="${ty += 8}">${v('solid')}</tspan>
+        <tspan x="${xText}" y="${ty += 6}">${v('dashed')}</tspan>
+        <tspan x="${xText}" y="${ty += 6}" style="font-weight:bold">${v('measure')}</tspan>
     </text>
 """
         }
@@ -148,62 +163,68 @@ style='stroke:$color;stroke-width:0.4mm;' />
         builder.toString()
     }
 
-    def pointsAtToPath(ArrayList<PointAt> points0, ArrayList<PointAt> points1) {
+    def pointsAtToPath(ArrayList<PointAt> points0, ArrayList<PointAt> points1, double deltaX = 0.0) {
         StringBuilder builder = new StringBuilder()
-        builder.append " M ${points1[0].len.round(2)},${points1[0].arc.round(2)} L".toString()
+        builder.append " M ${points1[0].len.round(2) + deltaX},${points1[0].arc.round(2)} L".toString()
         points0.each { PointAt point ->
-            builder.append " ${point.len.round(2)},${point.arc.round(2)}".toString()
+            builder.append " ${point.len.round(2) + deltaX},${point.arc.round(2)}".toString()
         }
-        builder.append " ${points1[-1].len.round(2)},${points1[-1].arc.round(2)}".toString()
+        builder.append " ${points1[-1].len.round(2) - deltaX},${points1[-1].arc.round(2)}".toString()
         points1.eachWithIndex { PointAt point, int i ->
             if (i == 0) {
-                builder.append " M ${point.len.round(2)},${point.arc.round(2)} L".toString()
+                builder.append " M ${point.len.round(2) - deltaX},${point.arc.round(2)} L".toString()
             } else {
-                builder.append " ${point.len.round(2)},${point.arc.round(2)}".toString()
+                builder.append " ${point.len.round(2) - deltaX},${point.arc.round(2)}".toString()
             }
         }
         builder.toString()
     }
 
     static calculateTubecutPlot(
-            double rLarge = 78.0,
+            double rLarge = 75.0,
+            double thlarge = 5.0,
             double rSmall = 20.0,
             double angle = 45.0,
-            double exc = 55.0,
+            double offset = 55.0,
             double stepsize = 0.1,
             int pageWidth = 297,
             int pageHeight = 210,
-            int xOffset = 20
-//            String plotDir = '/tmp/tmp',
-//            String filenamePattern = 'ltubecut_%.0f_%.0f_%.0f_%.0f.svg'
+            int xOffset = 5
     ) {
-        def cutline = asin(exc / rLarge) * rLarge
+        def offsetAngle = asin(offset / rLarge)
+        def cutlineOuter = offsetAngle * (rLarge + thlarge)
         def gen = new SvgGenerator()
-        def calc = new TubeCutCalculatorExcentric(rSmall, rLarge, angle, exc)
-        // cut graph
-        def tc = calc.calculate(stepsize)
-        def length = gen.generateLine(i18n.v('len'), 'red', [tc.cutStart, cutline, tc.cutEnd, cutline], 1, -1)
-        def length2 = gen.generateLine(i18n.v('len'), 'red', [tc.cutStart, cutline, tc.cutEnd, cutline], -1, -1)
-//        def length = /<line x1="${tc.cutStart}" y1="$cutline" x2="${tc.cutEnd}" y2="$cutline" style="stroke:red;stroke-width:0.2mm;" \/>/
-        def zenith = rLarge * Math.PI / 2
-//        def zenithLine = /<line x1="0" y1="${zenith}" x2="${pageWidth}" y2="${zenith}" style="stroke:blue;stroke-width:0.4mm;" \/>/
+        // cut graph for tube inside
+        def calc = new TubeCutCalculatorExcentric(rSmall, rLarge, angle, offset)
+        def tcInner = calc.calculate(stepsize)
+        // cut graph for tube outside
+        def calcOuter = new TubeCutCalculatorExcentric(rSmall, rLarge + thlarge, angle, offset)
+        def tcOuter = calcOuter.calculate(stepsize)
+        def length = gen.generateLine(i18n.v('len'),
+                'red', [tcInner.cutStart, cutlineOuter, tcInner.cutEnd, cutlineOuter], 1, -1)
+        def length2 = gen.generateLine(i18n.v('len'),
+                'red', [tcInner.cutStart, cutlineOuter, tcInner.cutEnd, cutlineOuter], -1, -1)
+        // plot iss to be fixed on uoter surface, so take outer radius including wall thickness
+        def zenith = (rLarge + thlarge) * PI / 2
+        // line marks top of large tube (180°)
         def zenithLine = gen.generateLine(i18n.v('top'), 'blue', [0, zenith, pageWidth, zenith])
-//        def baseline = /<line x1="0" y1="0" x2="${pageWidth}" y2="0" style="stroke:green;stroke-width:0.4mm;" \/>/
-        def baseline = gen.generateLine(i18n.v('base'), 'green', [0, 0, pageWidth, 0])
-        def pEntry0 = gen.pointsAtToPath(tc.outlines[0], tc.outlines[1])
-        def p0 = gen.pathFrame(pEntry0)
+        // line marks middle of larger tube (90°)
+        def midline = gen.generateLine(i18n.v('base'), 'green', [0, 0, pageWidth, 0])
+        // entry shape at inner surface of large tube
+        def pEntryInner = gen.pointsAtToPath(tcInner.outlines[0], tcInner.outlines[1])
+        def pInner = gen.pathFrame(pEntryInner)
+        // entry shape at outer surface of large tube
+        def pEntryOuter = gen.pointsAtToPath(tcOuter.outlines[0], tcOuter.outlines[1])
+        def pOuter = gen.pathFrame(pEntryOuter, true, [0, 0.0])
         def legend = gen.generateLegend(
-                rLarge * 2,
-                rSmall * 2,
-                angle,
-                exc,
-                tc.cutLength).toString()
-        def tg0 = gen.generateTextGroup(i18n.v('tIn'), tc.cutStart, tc.cutTop + 2, 1, -1)
-        def tg1 = gen.generateTextGroup(i18n.v('fOut'), tc.cutEnd - xOffset, tc.cutBottom - 5, 1, -1)
-        def tg0r = gen.generateTextGroup(i18n.v('tIn'), tc.cutStart + xOffset, tc.cutTop + 2, -1, -1)
-        def tg1r = gen.generateTextGroup(i18n.v('fOut'), tc.cutEnd, tc.cutBottom - 5, -1, -1)
-        def group = gen.groupFrame([p0, length, zenithLine, baseline, tg0, tg1], -(int) tc.cutStart + 10, pageHeight - 50)
-        def group2 = gen.groupFrame([p0, length2, tg0r, tg1r], pageWidth - xOffset, pageHeight - 50, -1)
+                rLarge * 2, rSmall * 2, angle, offset, tcInner.cutLength, pageHeight
+        ).toString()
+        def tg0 = gen.generateTextGroup(i18n.v('tIn'), tcInner.cutStart, tcInner.cutTop + 2, 1, -1)
+        def tg1 = gen.generateTextGroup(i18n.v('fOut'), tcInner.cutEnd - xOffset, tcInner.cutBottom - 5, 1, -1)
+        def tg0r = gen.generateTextGroup(i18n.v('tIn'), tcInner.cutStart + 3 * xOffset, tcInner.cutTop + 2, -1, -1)
+        def tg1r = gen.generateTextGroup(i18n.v('fOut'), tcInner.cutEnd + 2 * xOffset, tcInner.cutBottom - 5, -1, -1)
+        def group = gen.groupFrame([pInner, pOuter, length, zenithLine, midline, tg0, tg1], -(int) tcInner.cutStart + xOffset, pageHeight - 50)
+        def group2 = gen.groupFrame([pInner, pOuter, length2, tg0r, tg1r], pageWidth - xOffset, pageHeight - 50, -1)
         def textgroup = gen.groupFrame([legend], xOffset, 0, 1, 1)
         def svg = gen.svgFrame([group, group2, textgroup])
         svg

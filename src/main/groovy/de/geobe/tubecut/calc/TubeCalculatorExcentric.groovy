@@ -57,7 +57,8 @@ class TubeCutCalculatorExcentric extends TubeCutCalculator {
         Point lastUpperPoint, lastLowerPoint
         def cutPoints = []
         if (dx <= largeTubeRadius + a && dx >= -a) {
-            // go upper and lower half of ellipse arc simultanously
+            // iterate over upper and lower half of ellipse arc simultanously
+            int upperCrossings = 0, lowerCrossings = 0
             lastLowerPoint = ellipseSegment[0].clone()
             lastUpperPoint = ellipseSegment[0].clone()
             lastUpWasInner = lastLoWasInner = isPointInCircle(lastUpperPoint, dx, excentricity)
@@ -66,7 +67,9 @@ class TubeCutCalculatorExcentric extends TubeCutCalculator {
                     // first work on upper half of ellipse
                     boolean isInner = isPointInCircle(point, dx, excentricity)
                     // upper arc just crossed circle
-                    if (isInner && !lastUpWasInner || !isInner && lastUpWasInner) {
+                    if (upperCrossings < 2 && (isInner && !lastUpWasInner || !isInner && lastUpWasInner)) {
+                        // count crossing
+                        upperCrossings++
                         // relative to center of ellipse
                         def x = (point.x + lastUpperPoint.x) / 2
                         def y = (point.y + lastUpperPoint.y) / 2
@@ -83,7 +86,9 @@ class TubeCutCalculatorExcentric extends TubeCutCalculator {
                     point.y = -point.y
                     isInner = isPointInCircle(point, dx, excentricity)
                     // lower arc just crossed circle
-                    if (isInner && !lastLoWasInner || !isInner && lastLoWasInner) {
+                    if (lowerCrossings < 2 && (isInner && !lastLoWasInner || !isInner && lastLoWasInner)) {
+                        // count crossing
+                        lowerCrossings++
                         // relative to center of ellipse
                         def x = (point.x + lastLowerPoint.x) / 2
                         def y = (point.y + lastLowerPoint.y) / 2
@@ -101,7 +106,6 @@ class TubeCutCalculatorExcentric extends TubeCutCalculator {
         }
         if (cutPoints.size() == 1) {
             bp.upper = cutPoints[0]
-//            println "touchpoint ${cutPoints[0]}"
         } else if (cutPoints.size() == 2) {
             if (cutPoints[0].y >= cutPoints[1].y) {
                 bp.upper = cutPoints[0]
@@ -133,7 +137,7 @@ class TubeCutCalculatorExcentric extends TubeCutCalculator {
         def tcup = []
         def tclo = []
         def outsideCircle = true
-        for (def dx = x0max.round(0); dx > x0min; dx -= step) {
+        for (def dx = x0max.round(0); dx > 2*x0min; dx -= step) {
             def bp = borderPoints(dx)
             if (bp.upper) {
                 cutmax = max(cutmax, bp.upper.len)
@@ -149,7 +153,7 @@ class TubeCutCalculatorExcentric extends TubeCutCalculator {
                 ycutmin = min(ycutmin, bp.lower.arc)
                 tclo.add(bp.lower)
             }
-            if(outsideCircle && (bp.upper || bp.lower)) {
+            if (outsideCircle && (bp.upper || bp.lower)) {
                 // just started overlapping
                 outsideCircle = false
             }
